@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>품목별 유효 입찰공고 모니터</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --ink:#16191d; --sub:#6b7280; --line:#e4e7eb;
+  --navy:#1f3864; --navy2:#2c4a80; --danger:#b42318; --warn:#93370d; --ok:#166534;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:8px 14px}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid #b9c7e0;outline-offset:-1px}
+a{color:#0b5cad;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── 로그인 ── */
+#gate{position:fixed;inset:0;background:linear-gradient(160deg,#1f3864,#0d1b30);
+  display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+#gate .box{background:#fff;border-radius:14px;padding:32px;width:100%;max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#gate h1{margin:0 0 6px;font-size:18px}
+#gate p{margin:0 0 20px;font-size:13px;color:var(--sub)}
+#gate input{width:100%;margin-bottom:12px}
+#gate button{width:100%;background:var(--navy);color:#fff;padding:11px}
+#gate button:hover{background:var(--navy2)}
+.err{color:var(--danger);font-size:13px;margin-top:10px;min-height:18px}
+
+/* ── 레이아웃 ── */
+header{background:var(--navy);color:#fff;padding:16px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{margin:0;font-size:17px;font-weight:600}
+header .meta{font-size:12px;opacity:.78}
+header .spacer{flex:1}
+header button{background:rgba(255,255,255,.14);color:#fff;font-size:13px;padding:6px 12px}
+header button:hover{background:rgba(255,255,255,.24)}
+.wrap{max-width:1680px;margin:0 auto;padding:18px 22px 50px}
+
+.notice{border-radius:10px;padding:13px 16px;margin-bottom:16px;font-size:13px;line-height:1.6}
+.notice.warn{background:#fff8e6;border:1px solid #f5d78e;color:#7a5200}
+.notice.info{background:#eef4ff;border:1px solid #c5d7f5;color:#1e3a6b}
+.notice.ok{background:#eaf6ed;border:1px solid #b7dfc4;color:#14532d}
+.notice code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px;font-size:12.5px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:16px}
+.panel > summary{padding:13px 16px;font-weight:600;font-size:14px;cursor:pointer;list-style:none;
+  display:flex;align-items:center;gap:8px}
+.panel > summary::-webkit-details-marker{display:none}
+.panel > summary::before{content:'▸';transition:transform .15s;color:var(--sub)}
+.panel[open] > summary::before{transform:rotate(90deg)}
+.panel .body{padding:4px 16px 16px;border-top:1px solid var(--line)}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.row label{font-size:13px;color:var(--sub)}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);cursor:pointer;user-select:none}
+
+table.items{width:100%;border-collapse:collapse;margin:8px 0}
+table.items th{text-align:left;font-size:12px;color:var(--sub);font-weight:600;padding:6px 8px;white-space:nowrap}
+table.items td{padding:4px 6px;vertical-align:top}
+table.items input{width:100%}
+.del{background:#fbeaea;color:var(--danger);padding:7px 10px;font-size:13px}
+.del:hover{background:#f6dada}
+.add{background:#eef1f5;color:var(--navy);font-size:13px}
+.add:hover{background:#e2e7ee}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+
+.runbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+#run{background:var(--navy);color:#fff;padding:11px 26px;font-weight:600}
+#run:hover:not(:disabled){background:var(--navy2)}
+#run:disabled{opacity:.55;cursor:not-allowed}
+.exp{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.exp:hover:not(:disabled){background:#f2f4f7}
+.exp:disabled{opacity:.45;cursor:not-allowed}
+.progress{flex:1;min-width:180px;height:7px;background:#e6e9ee;border-radius:99px;overflow:hidden;display:none}
+.progress > div{height:100%;width:0;background:var(--navy);transition:width .25s}
+#stat{font-size:13px;color:var(--sub)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+.kpi .l{font-size:12px;color:var(--sub)}
+.kpi .v{font-size:25px;font-weight:650;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi.d .v{color:var(--danger)}
+.kpi.o .v{color:var(--ok)}
+
+.controls{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 14px;
+  margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.controls input[type=search]{flex:1;min-width:210px}
+.cnt{margin-left:auto;font-size:13px;color:var(--sub);white-space:nowrap}
+
+.tablewrap{background:var(--card);border:1px solid var(--line);border-radius:11px;overflow:auto;max-height:70vh}
+table.data{width:100%;border-collapse:collapse}
+table.data th{background:#eef1f5;text-align:left;padding:10px 11px;font-size:12.5px;font-weight:600;
+  position:sticky;top:0;z-index:1;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--line)}
+table.data th:hover{background:#e3e8ef}
+table.data td{padding:9px 11px;border-bottom:1px solid #f2f3f5;font-size:13px;vertical-align:top}
+table.data tr:hover td{background:#fafbfc}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-hot{background:#fee4e2;color:var(--danger)}
+.b-warn{background:#fef0c7;color:var(--warn)}
+.b-ok{background:#e7f2ea;color:var(--ok)}
+.b-tag{background:#eef1f5;color:#374151}
+.sub{font-size:11.5px;color:var(--sub)}
+.empty{padding:46px;text-align:center;color:var(--sub)}
+footer{margin-top:20px;font-size:12px;color:var(--sub);line-height:1.7}
+@media(max-width:760px){.wrap{padding:14px}header{padding:14px}}
+</style>
+</head>
+<body>
+
+<!-- ══ 로그인 ══ -->
+<div id="gate">
+  <div class="box">
+    <h1>품목별 유효 입찰공고 모니터</h1>
+    <p>사내 전용 페이지입니다. 비밀번호를 입력하세요.</p>
+    <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password">
+    <button id="login">로그인</button>
+    <div class="err" id="gateErr"></div>
+  </div>
+</div>
+
+<!-- ══ 본문 ══ -->
+<div id="app" style="display:none">
+<header>
+  <h1>품목별 유효 입찰공고</h1>
+  <span class="meta" id="hmeta"></span>
+  <span class="spacer"></span>
+  <button id="logout">로그아웃</button>
+</header>
+
+<div class="wrap">
+  <div id="notices"></div>
+
+  <!-- 설정 -->
+  <details class="panel" id="cfgPanel">
+    <summary>수집 설정 — 품목 · 기간 · 업무구분</summary>
+    <div class="body">
+      <div class="row">
+        <label>조회 기간</label>
+        <select id="lookback">
+          <option value="30">최근 30일 공고</option>
+          <option value="45" selected>최근 45일 공고 (권장)</option>
+          <option value="60">최근 60일 공고</option>
+          <option value="90">최근 90일 공고</option>
+        </select>
+        <label style="margin-left:10px">업무구분</label>
+        <label class="chk"><input type="checkbox" class="bt" value="thng" checked> 물품</label>
+        <label class="chk"><input type="checkbox" class="bt" value="servc" checked> 용역</label>
+        <label class="chk"><input type="checkbox" class="bt" value="cnstwk" checked> 공사</label>
+        <label class="chk"><input type="checkbox" class="bt" value="frgcpt"> 외자</label>
+        <label style="margin-left:10px">마감임박 기준</label>
+        <select id="imm">
+          <option value="24">24시간</option>
+          <option value="48" selected>48시간</option>
+          <option value="72">72시간</option>
+          <option value="168">7일</option>
+        </select>
+      </div>
+      <div class="row">
+        <label style="font-weight:600;color:var(--ink)">수집 소스</label>
+        <label class="chk"><input type="checkbox" class="src" value="g2b" checked> 나라장터 (조달청)</label>
+        <label class="chk"><input type="checkbox" class="src" value="kapt"> <b>K-apt (공동주택)</b></label>
+        <label class="chk" style="margin-left:6px"><input type="checkbox" id="kaptLaundry" checked> K-apt 세탁 전용 판정</label>
+      </div>
+      <div class="hint" style="margin-bottom:10px">
+        <b>K-apt</b> &mdash; 전국 의무관리대상 아파트의 입찰공고입니다. 커뮤니티센터·경로당 <b>세탁기 교체</b>,
+        <b>무인세탁실 설치·위탁운영자 선정</b>, <b>빨래방 임대</b> 같은 민간 물량이 여기 모입니다.<br>
+        <b>세탁 전용 판정</b>을 켜면 아래 규칙으로 자동 분류합니다 &mdash; 단순 제외어로는 구분이 안 되기 때문입니다.<br>
+        &nbsp;&nbsp;· 장비명(세탁기·건조기·무인세탁·코인세탁·빨래방)이 있으면 <b>'공사'가 붙어도 포함</b>
+        (예: "세탁실 무인세탁기 설치 <u>공사</u>" → 포함)<br>
+        &nbsp;&nbsp;· 장비명 없이 세탁실 + 방수·누수·배관·타일·도장·철거만 있으면 <b>제외</b>
+        (예: "세탁실 누수 방수공사" → 제외)<br>
+        &nbsp;&nbsp;· 품목표의 <b>제외 키워드</b>는 두 경우 모두 최종 적용됩니다.
+      </div>
+      <div class="row">
+        <label>수집 방식</label>
+        <select id="mode" style="min-width:290px">
+          <option value="both" selected>검색 + 목록 (권장 · 누락 최소)</option>
+          <option value="search">나라장터 검색만 (PPSSrch, 가장 빠름)</option>
+          <option value="list">전체 목록만 (세부품명까지 매칭)</option>
+        </select>
+      </div>
+      <div class="hint" style="margin-bottom:10px">
+        <b>검색 + 목록(권장)</b> &mdash; 두 방식을 모두 돌려 합칩니다.<br>
+        <b>나라장터 검색(PPSSrch)</b> &mdash; 조달청 서버가 <b>공고명</b>을 직접 검색합니다. 응답이 작아 빠르고 호출 수도 적습니다.
+        (실측: 15일치 &quot;세탁기&quot; 검색 = 2건 수신)<br>
+        <b>전체 목록</b> &mdash; 기간 내 공고를 전량 받아 앱이 직접 거릅니다. 공고명뿐 아니라 <b>세부품명·공고번호</b>까지 매칭되지만
+        응답이 큽니다 (실측: 15일치 물품만 6,155건).<br>
+        <span style="color:#7a5200">※ 조달청 실측 결과 <code>/ad/</code> 경로 &middot; 기준일 <code>inqryDiv=1</code> 조합만 유효하여 그 조합만 호출합니다.</span>
+      </div>
+
+      <table class="items">
+        <thead><tr>
+          <th style="width:14%">품목명</th>
+          <th style="width:30%">포함 키워드 (쉼표 구분)</th>
+          <th style="width:24%">제외 키워드</th>
+          <th style="width:20%">세부품명번호 앞자리</th>
+          <th style="width:60px"></th>
+        </tr></thead>
+        <tbody id="itemRows"></tbody>
+      </table>
+      <button class="add" id="addItem">+ 품목 추가</button>
+      <div class="hint">
+        포함 키워드 <b>또는</b> 품명번호 앞자리가 맞으면 매칭됩니다(OR). 제외 키워드는 그보다 우선합니다.<br>
+        설정은 이 브라우저에만 저장됩니다. 다른 PC에서 쓰려면 <b>설정 내보내기/불러오기</b>를 사용하세요.
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="add" id="expCfg">설정 내보내기</button>
+        <button class="add" id="impCfg">설정 불러오기</button>
+        <button class="add" id="resetCfg">기본값으로</button>
+      </div>
+    </div>
+  </details>
+
+  <details class="panel" id="diagPanel">
+    <summary>진단 실행 — 조달청 응답 원문 확인</summary>
+    <div class="body">
+      <div class="row">
+        <label>검색 키워드</label>
+        <input id="dKw" value="세탁" style="width:150px" placeholder="예: 세탁">
+        <label>업무구분</label>
+        <select id="dType">
+          <option value="all" selected>전체 오퍼레이션 탐색 (내자 위치 확인)</option>
+          <option value="thng">물품</option>
+          <option value="servc">용역</option>
+          <option value="cnstwk">공사</option>
+          <option value="frgcpt">외자</option>
+        </select>
+        <label>기간</label>
+        <select id="dDays">
+          <option value="7">최근 7일</option>
+          <option value="15" selected>최근 15일</option>
+          <option value="30">최근 30일</option>
+          <option value="60">최근 60일</option>
+        </select>
+        <label>방식</label>
+        <select id="dMode">
+          <option value="search" selected>나라장터 검색(PPSSrch)</option>
+          <option value="list">기간 목록(List)</option>
+        </select>
+        <button class="add" id="runDiag">진단 실행</button>
+        <button class="add" id="runKaptProbe" title="K-apt 입찰공고 API의 실제 경로와 날짜 파라미터를 탐지합니다">K-apt 엔드포인트 탐지</button>
+        <span id="diagStat" style="font-size:13px;color:var(--sub)"></span>
+      </div>
+      <div class="hint">
+        앱의 필터를 거치지 않고 <b>조달청이 실제로 보낸 원문</b>을 검사합니다. 상태 표시의 뜻은 다음과 같습니다.<br>
+        <b>정상</b> &mdash; 오퍼레이션이 살아있고 응답을 받았습니다. <code>상위 N건만 검사</code> 가 붙으면 기간 총건수가 커서
+        앞쪽 일부만 훑은 것이며, 키워드가 뒤쪽 페이지에 있으면 <b>키워드 일치 0</b> 으로 보일 수 있습니다.
+        키워드 판정은 <b>검색(PPSSrch)</b> 행을 우선 보십시오.<br>
+        <b>미제공/미승인</b> &mdash; 조달청에 그 오퍼레이션이 없거나 활용신청에 포함되지 않았습니다. 정상 상황입니다.<br>
+        <b>건너뜀</b> &mdash; 진단 전체 시간 예산(50초)을 초과해 호출하지 못했습니다. <b>조회 기간을 줄이면</b> 해소됩니다.<br>
+        <b>K-apt 엔드포인트 탐지</b> &mdash; 공동주택(K-apt) 입찰공고 API는 서비스명·날짜 파라미터 표기가 공개 문서마다 달라,
+        후보를 차례로 호출해 실제로 응답하는 조합을 찾아냅니다. 결과가 모두 <b>미승인</b> 이면 공공데이터포털에서
+        <b>K-apt 입찰공고 활용신청</b> 을 먼저 하십시오(인증키는 기존 것을 그대로 씁니다).
+      </div>
+      <div id="diagOut"></div>
+    </div>
+  </details>
+
+  <!-- 키워드 즉시 검색 -->
+  <div class="panel" style="padding:14px 16px;margin-bottom:14px">
+    <div class="row" style="margin-bottom:6px">
+      <label style="font-weight:600;color:var(--ink)">키워드 검색</label>
+      <input id="quickKw" placeholder="예: 세탁   ·   여러 개는 쉼표로 (세탁, 건조기)" style="flex:1;min-width:240px">
+      <button class="add" id="runQuick" style="background:var(--navy);color:#fff;padding:9px 20px">검색</button>
+    </div>
+    <div class="hint">
+      품목 설정과 무관하게 <b>입력한 키워드로 바로</b> 마감 전 공고를 찾습니다.
+      공고명·세부품명·공고번호 어디든 포함되면 잡히며, <b>짧게 넣을수록 넓게</b> 잡힙니다
+      (<code>세탁기</code>는 "세탁물 처리 용역"을 놓치지만 <code>세탁</code>은 둘 다 잡습니다).
+    </div>
+  </div>
+
+  <div class="runbar">
+    <button id="run">공고 수집</button>
+    <button class="exp" id="dlXlsx" disabled>엑셀 다운로드</button>
+    <button class="exp" id="dlCsv" disabled>CSV 다운로드</button>
+    <div class="progress" id="prog"><div></div></div>
+    <span id="stat">설정을 확인한 뒤 <b>공고 수집</b>을 누르세요.</span>
+  </div>
+
+  <div class="kpis" id="kpis" style="display:none"></div>
+
+  <div class="controls" id="ctrls" style="display:none">
+    <input type="search" id="q" placeholder="공고명 · 기관명 · 공고번호 · 품명 검색">
+    <select id="fItem"><option value="">전체 품목</option></select>
+    <select id="fType"><option value="">전체 구분</option></select>
+    <label class="chk"><input type="checkbox" id="fImm"> 마감임박만</label>
+    <span class="cnt" id="cnt"></span>
+  </div>
+
+  <div class="tablewrap" id="tw" style="display:none">
+    <table class="data">
+      <thead><tr>
+        <th data-k="hoursLeft">D-Day</th>
+        <th data-k="closeDt">마감일시</th>
+        <th data-k="itemLabel">품목</th>
+        <th data-k="typeLabel">구분</th>
+        <th data-k="title">공고명</th>
+        <th data-k="demandOrg">수요기관</th>
+        <th data-k="estPrice">추정가격</th>
+        <th data-k="contractMethod">계약방법</th>
+        <th>링크</th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty" style="display:none">조건에 맞는 공고가 없습니다.</div>
+
+  <footer>
+    출처: 조달청 나라장터 OpenAPI · 본 화면은 <b>수집 시점의 스냅샷</b>이며 실시간이 아닙니다.
+    투찰 전 반드시 원문 공고에서 마감일시와 자격요건을 확인하십시오.<br>
+    수집 로직: ① 최근 N일 공고 전량 → ② 입찰마감일시 &gt; 조회시각 인 건만 → ③ 품목 키워드/품명번호 매칭.
+  </footer>
+</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   상태
+   ═══════════════════════════════════════════════════════════ */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const LS_KEY = 'g2b_cfg_v6';
+const WINDOW_DAYS = 10;   // 서버리스 실행시간을 감안한 구간 크기
+const CONCURRENCY = 5;
+
+const DEFAULT_ITEMS = [
+  { name: '세탁', keywords: '세탁, 건조기, 린넨', exclude: '', prefixes: '4713' },
+];
+
+let DATA = [];
+let sortKey = 'hoursLeft', sortAsc = true;
+let statusInfo = {};
+
+/* ═══════════════════════════════════════════════════════════
+   설정 (localStorage)
+   ═══════════════════════════════════════════════════════════ */
+function loadCfg() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* 저장소 사용 불가 시 기본값 */ }
+  return { lookback: 45, types: ['thng', 'servc', 'cnstwk'], imm: 48, mode: 'both', sources: ['g2b', 'kapt'], kaptLaundry: true, items: DEFAULT_ITEMS };
+}
+function saveCfg() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(readCfgFromUI())); } catch (e) {}
+}
+function readCfgFromUI() {
+  const items = [...$('#itemRows').rows].map((tr) => ({
+    name: tr.cells[0].firstChild.value.trim(),
+    keywords: tr.cells[1].firstChild.value,
+    exclude: tr.cells[2].firstChild.value,
+    prefixes: tr.cells[3].firstChild.value,
+  })).filter((i) => i.name);
+  return {
+    lookback: +$('#lookback').value,
+    types: $$('.bt:checked').map((c) => c.value),
+    imm: +$('#imm').value,
+    mode: $('#mode').value,
+    sources: $$('.src:checked').map((c) => c.value),
+    kaptLaundry: $('#kaptLaundry').checked,
+    items,
+  };
+}
+function itemRow(item) {
+  const tr = document.createElement('tr');
+  const mk = (v, ph) => { const i = document.createElement('input'); i.value = v || ''; i.placeholder = ph; i.oninput = saveCfg; return i; };
+  [['name', '예: 세탁장비'], ['keywords', '세탁기, 건조기'], ['exclude', '수리, 유지보수'], ['prefixes', '4713']]
+    .forEach(([k, ph]) => { const td = document.createElement('td'); td.appendChild(mk(item[k], ph)); tr.appendChild(td); });
+  const td = document.createElement('td');
+  const b = document.createElement('button');
+  b.className = 'del'; b.textContent = '삭제';
+  b.onclick = () => { tr.remove(); saveCfg(); };
+  td.appendChild(b); tr.appendChild(td);
+  return tr;
+}
+function renderCfg(cfg) {
+  $('#lookback').value = cfg.lookback;
+  $('#imm').value = cfg.imm;
+  $('#mode').value = cfg.mode || 'both';
+  $$('.bt').forEach((c) => (c.checked = cfg.types.includes(c.value)));
+  const srcs = cfg.sources && cfg.sources.length ? cfg.sources : ['g2b'];
+  $$('.src').forEach((c) => (c.checked = srcs.includes(c.value)));
+  $('#kaptLaundry').checked = cfg.kaptLaundry !== false;
+  $('#itemRows').innerHTML = '';
+  cfg.items.forEach((i) => $('#itemRows').appendChild(itemRow(i)));
+}
+/** UI 문자열 설정 → 서버가 쓰는 배열 형태로 변환 */
+function toSpecs(cfg) {
+  const split = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+  return cfg.items.map((i) => ({
+    name: i.name,
+    keywords: split(i.keywords),
+    exclude: split(i.exclude),
+    prefixes: split(i.prefixes),
+  }));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   인증
+   ═══════════════════════════════════════════════════════════ */
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  return res;
+}
+
+/** 응답을 JSON으로 해석 — 라우트 미배포 시 404 HTML을 받는 상황을 명확히 알려준다 */
+async function jsonOf(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      `서버가 JSON이 아닌 응답을 보냈습니다 (HTTP ${res.status}). ` +
+      '해당 API 라우트가 배포되지 않았을 수 있습니다.'
+    );
+  }
+}
+
+async function checkStatus() {
+  const res = await api('/api/status');
+  statusInfo = await jsonOf(res);
+  return statusInfo;
+}
+
+async function boot() {
+  const s = await checkStatus();
+  if (!s.passwordConfigured) {
+    $('#gate').innerHTML = `<div class="box">
+      <h1>초기 설정이 필요합니다</h1>
+      <p style="margin-bottom:14px">Vercel 프로젝트 → <b>Settings → Environment Variables</b> 에서 아래 두 값을 추가한 뒤 재배포하세요.</p>
+      <div style="background:#f5f6f8;border-radius:8px;padding:12px;font-size:13px;line-height:1.9">
+        <code>APP_PASSWORD</code> — 이 페이지 접속 비밀번호<br>
+        <code>G2B_SERVICE_KEY</code> — 공공데이터포털 인증키(Decoding)
+      </div>
+      <p style="margin-top:16px;font-size:12.5px;color:#6b7280">
+        인증키는 <a href="https://www.data.go.kr/data/15129394/openapi.do" target="_blank" rel="noopener">
+        조달청_나라장터 입찰공고정보서비스</a>에서 무료로 활용신청하면 발급됩니다.</p>
+    </div>`;
+    return;
+  }
+  if (s.authed) enterApp();
+}
+
+$('#login').onclick = async () => {
+  const pw = $('#pw').value;
+  $('#gateErr').textContent = '';
+  const res = await api('/api/auth', { method: 'POST', body: JSON.stringify({ password: pw }) });
+  if (res.ok) { await checkStatus(); enterApp(); }
+  else {
+    const j = await res.json().catch(() => ({}));
+    $('#gateErr').textContent = j.message || '로그인에 실패했습니다.';
+  }
+};
+$('#pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#login').click(); });
+
+$('#logout').onclick = async () => {
+  await api('/api/auth', { method: 'DELETE' });
+  location.reload();
+};
+
+function enterApp() {
+  $('#gate').style.display = 'none';
+  $('#app').style.display = 'block';
+  $('#hmeta').textContent = `서버시각 ${statusInfo.serverTime} (KST)`;
+  renderCfg(loadCfg());
+
+  const n = [];
+  if (statusInfo.demoMode) {
+    n.push(`<div class="notice warn"><b>데모 모드</b> — 환경변수 <code>G2B_SERVICE_KEY</code> 가 설정되지 않아
+      모의 데이터 7건으로 동작합니다. Vercel → Settings → Environment Variables 에 인증키를 추가하고
+      재배포하면 실제 나라장터 데이터가 조회됩니다.</div>`);
+  }
+  $('#notices').innerHTML = n.join('');
+  if (statusInfo.demoMode) $('#cfgPanel').open = true;
+  else keyHealthCheck();
+}
+
+/** 인증키가 조달청에서 실제로 통하는지 확인 — 실패를 조용히 0건으로 넘기지 않기 위함 */
+async function keyHealthCheck() {
+  try {
+    const s = await (await api('/api/status?selftest=1')).json();
+    const t = s.keyTest;
+    if (t && !t.working) {
+      $('#notices').innerHTML =
+        '<div class="notice warn"><b>인증키가 조달청 API에서 거부되고 있습니다.</b><br>' +
+        esc(t.verdict) + '<br><br>' +
+        '공공데이터포털 → 마이페이지 → <b>개발계정 상세보기</b>에서 ' +
+        '<b>조달청_나라장터 입찰공고정보서비스</b>가 <b>승인</b> 상태인지 확인하고, ' +
+        '<b>일반 인증키</b>를 다시 복사해 Vercel 환경변수 <code>G2B_SERVICE_KEY</code> 에 넣은 뒤 재배포하십시오.' +
+        '</div>';
+    }
+  } catch (e) { /* 자가진단 실패는 무시 */ }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   수집
+   ═══════════════════════════════════════════════════════════ */
+function buildTasks(cfg, specs) {
+  const now = Date.now();
+  const begin = now - cfg.lookback * 86400000;
+  const mode = cfg.mode || 'list';
+  const sources = (cfg.sources && cfg.sources.length) ? cfg.sources : ['g2b'];
+  const tasks = [];
+  const useG2b = sources.includes('g2b');
+
+  // 검색 방식 — 조달청 서버가 공고명을 검색하므로 응답량이 작다 → 30일 구간
+  if (useG2b && (mode === 'search' || mode === 'both')) {
+    const kws = [...new Set(specs.flatMap((sp) => sp.keywords))].filter(Boolean);
+    const W = 30 * 86400000;
+    for (const type of cfg.types) {
+      for (const kw of kws) {
+        for (let s = begin; s < now; s += W) {
+          tasks.push({ type, keyword: kw, inqryDiv: '1', baseIdx: 0, beginMs: s, endMs: Math.min(s + W, now) });
+        }
+      }
+    }
+  }
+  // 목록 방식 — 15일 구간. 실측상 유효한 (/ad/ 경로 × inqryDiv=1) 조합만 호출한다.
+  if (useG2b && (mode === 'list' || mode === 'both')) {
+    const W = 15 * 86400000;
+    for (const baseIdx of [0]) {
+      for (const inqryDiv of ['1']) {
+        for (const type of cfg.types) {
+          for (let s = begin; s < now; s += W) {
+            tasks.push({ type, inqryDiv, baseIdx, beginMs: s, endMs: Math.min(s + W, now) });
+          }
+        }
+      }
+    }
+  }
+
+  // K-apt(공동주택) — 조달청과 별개 API. 15일 구간으로 나눠 호출한다.
+  if (sources.includes('kapt')) {
+    const W = 15 * 86400000;
+    for (let s2 = begin; s2 < now; s2 += W) {
+      tasks.push({ source: 'kapt', beginMs: s2, endMs: Math.min(s2 + W, now) });
+    }
+  }
+  return tasks;
+}
+
+async function runPool(tasks, worker, onTick) {
+  const results = [];
+  let idx = 0, done = 0;
+  async function next() {
+    while (idx < tasks.length) {
+      const my = idx++;
+      try { results[my] = await worker(tasks[my]); }
+      catch (e) { results[my] = { error: String(e.message || e) }; }
+      onTick(++done, tasks.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, next));
+  return results;
+}
+
+async function collect(cfg, specs, filterNames) {
+  const tasks = buildTasks(cfg, specs);
+  if (!tasks.length) {
+    alert('수집할 작업이 없습니다. 수집 소스(나라장터/K-apt)를 하나 이상 선택하고, 검색 방식이면 포함 키워드를 넣으세요.');
+    return;
+  }
+
+  $('#run').disabled = true;
+  $('#runQuick').disabled = true;
+  $('#dlXlsx').disabled = $('#dlCsv').disabled = true;
+  $('#prog').style.display = 'block';
+  $('#prog').firstElementChild.style.width = '0%';
+  $('#stat').textContent = `수집 중… 0 / ${tasks.length}`;
+
+  const results = await runPool(
+    tasks,
+    async (t) => {
+      const res = await api('/api/bids', {
+        method: 'POST',
+        body: JSON.stringify({ ...t, source: t.source || 'g2b', kaptRule: cfg.kaptLaundry === false ? 'keyword' : 'laundry', keyword: t.keyword || '', inqryDiv: t.inqryDiv || '1', baseIdx: t.baseIdx || 0, items: specs, imminentHours: cfg.imm }),
+      });
+      if (res.status === 401) { location.reload(); throw new Error('세션 만료'); }
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.message || j.error || `HTTP ${res.status}`);
+      return j;
+    },
+    (d, total) => {
+      $('#prog').firstElementChild.style.width = `${(d / total) * 100}%`;
+      $('#stat').textContent = `수집 중… ${d} / ${total}`;
+    }
+  );
+
+  // 병합 · 중복 제거(공고번호 기준, 최신 차수 유지)
+  const byNo = new Map();
+  let raw = 0, expired = 0, noClose = 0, errors = [], truncated = false;
+  let kaptRaw = 0, kaptHit = 0, kaptErrors = [], kaptInfo = null;
+  const kaptTaskCount = tasks.filter((t) => t.source === 'kapt').length;
+  for (let ri = 0; ri < results.length; ri++) {
+    const r = results[ri];
+    const isKapt = tasks[ri] && tasks[ri].source === 'kapt';
+    if (!r || r.error) {
+      if (r && r.error) { errors.push(r.error); if (isKapt) kaptErrors.push(r.error); }
+      continue;
+    }
+    if (isKapt || r.source === 'kapt') {
+      kaptRaw += r.rawCount || 0;
+      kaptHit += (r.matched || []).length;
+      if (!kaptInfo && r.endpoint) kaptInfo = { endpoint: r.endpoint, dateParam: r.dateParam, operation: r.operation };
+    }
+    raw += r.rawCount || 0;
+    expired += r.expired || 0;
+    noClose += r.noClose || 0;
+    truncated = truncated || !!r.truncated;
+    for (const rec of r.matched || []) {
+      const prev = byNo.get(rec.no);
+      if (!prev || (+rec.ord || 0) >= (+prev.ord || 0)) byNo.set(rec.no, rec);
+    }
+  }
+  DATA = [...byNo.values()].sort((a, b) => a.hoursLeft - b.hoursLeft);
+
+  $('#run').disabled = false;
+  $('#runQuick').disabled = false;
+  $('#prog').style.display = 'none';
+  $('#dlXlsx').disabled = $('#dlCsv').disabled = DATA.length === 0;
+
+  const modeLabel = { search: '나라장터 검색', list: '전체 목록', both: '검색+목록' }[cfg.mode || 'list'];
+  let msg = `[${modeLabel}] 수신 ${raw.toLocaleString()}건 · 마감경과 ${expired.toLocaleString()}건 제외`;
+  if (noClose) msg += ` · 마감일시 없음 ${noClose.toLocaleString()}건 제외`;
+  msg += ` → 매칭 유효 ${DATA.length.toLocaleString()}건`;
+  if (errors.length) msg += ` · 실패 구간 ${errors.length}개`;
+  if (truncated) msg += ' · ※일부 구간 절삭 — 조회기간을 줄이세요';
+  if (kaptTaskCount) {
+    msg += ` | K-apt 수신 ${kaptRaw.toLocaleString()}건 → 매칭 ${kaptHit.toLocaleString()}건`;
+    if (kaptErrors.length) msg += ` · 실패 ${kaptErrors.length}/${kaptTaskCount}`;
+  }
+  $('#stat').textContent = msg;
+
+
+  // 모든 구간이 실패했으면 원인을 화면에 그대로 보여줍니다 (조용한 0건 방지).
+  if (errors.length && raw === 0) {
+    const uniq = [...new Set(errors)].slice(0, 3);
+    $('#notices').innerHTML =
+      '<div class="notice warn"><b>수집 실패 — 조달청이 데이터를 반환하지 않았습니다.</b><br>' +
+      uniq.map(esc).join('<br>') + '</div>';
+  } else if (!statusInfo.demoMode) {
+    $('#notices').innerHTML = '';
+  }
+  // K-apt 실패는 조달청 결과에 묻히기 쉬우므로 별도로 드러낸다.
+  if (kaptTaskCount && kaptErrors.length === kaptTaskCount) {
+    const u = [...new Set(kaptErrors)].slice(0, 2);
+    $('#notices').insertAdjacentHTML('beforeend',
+      '<div class="notice warn"><b>K-apt 수집 실패</b> — 공공데이터포털에서 <b>K-apt 입찰공고 API 활용신청</b>이 승인되었는지 확인하세요.<br>' +
+      u.map(esc).join('<br>') +
+      '<br>진단 패널의 <b>K-apt 엔드포인트 탐지</b>를 실행하면 실제 경로·날짜 파라미터를 찾아줍니다.</div>');
+  } else if (kaptInfo) {
+    console.info('K-apt endpoint:', kaptInfo);
+  }
+  if (errors.length) console.warn('수집 실패 구간:', errors);
+
+  buildFilters({ items: filterNames.map((n) => ({ name: n })) });
+  render();
+}
+
+$('#run').onclick = async () => {
+  saveCfg();
+  const cfg = readCfgFromUI();
+  if (!cfg.types.length) { alert('업무구분을 하나 이상 선택하세요.'); return; }
+  if (!cfg.items.length) { alert('품목을 하나 이상 등록하세요.'); return; }
+  await collect(cfg, toSpecs(cfg), cfg.items.map((i) => i.name));
+};
+
+$('#runQuick').onclick = async () => {
+  const raw = $('#quickKw').value.trim();
+  if (!raw) { alert('검색할 키워드를 입력하세요. 예: 세탁'); $('#quickKw').focus(); return; }
+  const kws = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const cfg = readCfgFromUI();
+  cfg.mode = 'both';   // 조달청 서버 검색(PPSSrch) + 전량 목록을 함께 돌려 누락을 줄인다
+  cfg.kaptLaundry = false;   // 즉시검색은 입력 키워드를 그대로 K-apt에도 적용한다
+  if (!cfg.types.length) cfg.types = ['thng', 'servc', 'cnstwk'];
+  const name = kws.join('·');
+  await collect(cfg, [{ name, keywords: kws, exclude: [], prefixes: [] }], [name]);
+};
+$('#quickKw').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#runQuick').click(); });
+
+/* ═══════════════════════════════════════════════════════════
+   표시
+   ═══════════════════════════════════════════════════════════ */
+function buildFilters(cfg) {
+  const fi = $('#fItem'), ft = $('#fType');
+  fi.innerHTML = '<option value="">전체 품목</option>';
+  cfg.items.forEach((i) => fi.insertAdjacentHTML('beforeend', `<option>${esc(i.name)}</option>`));
+  ft.innerHTML = '<option value="">전체 구분</option>';
+  [...new Set(DATA.map((d) => d.typeLabel))].forEach((t) => ft.insertAdjacentHTML('beforeend', `<option>${esc(t)}</option>`));
+}
+
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const won = (n) => (n ? Number(n).toLocaleString('ko-KR') : '-');
+
+function ddayBadge(d) {
+  const h = d.hoursLeft;
+  const cls = h == null ? 'b-tag' : h <= 48 ? 'b-hot' : h <= 168 ? 'b-warn' : 'b-ok';
+  return `<span class="badge ${cls}">${esc(d.dday)}</span>`;
+}
+
+function filtered() {
+  const q = $('#q').value.trim().toLowerCase();
+  const fi = $('#fItem').value, ft = $('#fType').value, imm = $('#fImm').checked;
+  return DATA.filter((d) => {
+    if (fi && !(d.itemLabel || '').split(', ').includes(fi)) return false;
+    if (ft && d.typeLabel !== ft) return false;
+    if (imm && !d.imminent) return false;
+    if (q && !`${d.title} ${d.demandOrg} ${d.noticeOrg} ${d.no} ${d.clsfcNm}`.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a, b) => {
+    let x = a[sortKey], y = b[sortKey];
+    if (typeof x === 'string' || typeof y === 'string') {
+      return sortAsc ? String(x).localeCompare(String(y)) : String(y).localeCompare(String(x));
+    }
+    return sortAsc ? (x - y) : (y - x);
+  });
+}
+
+function render() {
+  const has = DATA.length > 0;
+  $('#kpis').style.display = has ? 'grid' : 'none';
+  $('#ctrls').style.display = has ? 'flex' : 'none';
+  $('#tw').style.display = has ? 'block' : 'none';
+
+  if (!has) { $('#empty').style.display = 'none'; return; }
+
+  const rows = filtered();
+  $('#cnt').textContent = `${rows.length.toLocaleString()}건 표시 / 전체 ${DATA.length.toLocaleString()}건`;
+  $('#empty').style.display = rows.length ? 'none' : 'block';
+
+  $('#tb').innerHTML = rows.map((d) => `<tr>
+    <td>${ddayBadge(d)}</td>
+    <td style="white-space:nowrap">${esc(d.closeDt)}</td>
+    <td>${(d.itemLabel || '').split(', ').filter(Boolean).map((i) => `<span class="badge b-tag">${esc(i)}</span>`).join(' ')}</td>
+    <td>${esc(d.typeLabel)}</td>
+    <td style="max-width:520px">${esc(d.title)}<br><span class="sub">${esc(d.no)}${d.clsfcNm ? ' · ' + esc(d.clsfcNm) : ''}</span></td>
+    <td>${esc(d.demandOrg)}</td>
+    <td class="num">${won(d.estPrice)}</td>
+    <td>${esc(d.contractMethod)}</td>
+    <td>${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">공고</a>` : '-'}</td>
+  </tr>`).join('');
+
+  const imm = DATA.filter((d) => d.imminent).length;
+  const sum = DATA.reduce((s, d) => s + (d.estPrice || 0), 0);
+  const orgs = new Set(DATA.map((d) => d.demandOrg)).size;
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="l">유효 공고</div><div class="v">${DATA.length.toLocaleString()}</div></div>
+    <div class="kpi d"><div class="l">마감임박</div><div class="v">${imm.toLocaleString()}</div></div>
+    <div class="kpi o"><div class="l">수요기관 수</div><div class="v">${orgs.toLocaleString()}</div></div>
+    <div class="kpi"><div class="l">추정가격 합계</div><div class="v">${(sum / 100000000).toFixed(1)}억</div></div>`;
+}
+
+$$('th[data-k]').forEach((th) => th.onclick = () => {
+  const k = th.dataset.k;
+  sortAsc = sortKey === k ? !sortAsc : true;
+  sortKey = k; render();
+});
+['q', 'fItem', 'fType', 'fImm'].forEach((id) => {
+  const el = document.getElementById(id);
+  el.addEventListener(el.type === 'search' ? 'input' : 'change', render);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   다운로드
+   ═══════════════════════════════════════════════════════════ */
+async function download(format) {
+  const cfg = readCfgFromUI();
+  const rows = filtered();
+  const btn = format === 'csv' ? $('#dlCsv') : $('#dlXlsx');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '생성 중…';
+  try {
+    const res = await api('/api/export', {
+      method: 'POST',
+      body: JSON.stringify({
+        format, rows,
+        itemNames: cfg.items.map((i) => i.name),
+        meta: { scope: `최근 ${cfg.lookback}일 공고 · 업무구분 ${cfg.types.join(', ')} · 마감임박 기준 ${cfg.imm}시간` },
+      }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || `HTTP ${res.status}`);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = res.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1]
+      || `bids.${format}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (e) {
+    alert('다운로드 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+$('#dlXlsx').onclick = () => download('xlsx');
+$('#dlCsv').onclick = () => download('csv');
+
+/* ═══════════════════════════════════════════════════════════
+   설정 입출력
+   ═══════════════════════════════════════════════════════════ */
+$('#addItem').onclick = () => { $('#itemRows').appendChild(itemRow({})); saveCfg(); };
+$('#resetCfg').onclick = () => {
+  if (!confirm('품목 설정을 기본값으로 되돌립니다. 계속할까요?')) return;
+  renderCfg({ lookback: 45, types: ['thng', 'servc', 'cnstwk'], imm: 48, items: DEFAULT_ITEMS });
+  saveCfg();
+};
+$('#expCfg').onclick = () => {
+  const blob = new Blob([JSON.stringify(readCfgFromUI(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'g2b-settings.json';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('#impCfg').onclick = () => {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json';
+  inp.onchange = async () => {
+    try {
+      const cfg = JSON.parse(await inp.files[0].text());
+      renderCfg({ lookback: cfg.lookback || 45, types: cfg.types || ['thng'], imm: cfg.imm || 48, items: cfg.items || [] });
+      saveCfg();
+      alert('설정을 불러왔습니다.');
+    } catch (e) { alert('설정 파일을 읽을 수 없습니다: ' + e.message); }
+  };
+  inp.click();
+};
+['#lookback', '#imm', '#mode'].forEach((s) => $(s).onchange = saveCfg);
+$$('.bt').forEach((c) => c.onchange = saveCfg);
+
+/* ═══════════════════════════════════════════════════════════
+   진단
+   ═══════════════════════════════════════════════════════════ */
+function kv(label, value, strong) {
+  return '<tr><td style="padding:4px 14px 4px 0;color:#6b7280;white-space:nowrap">' + esc(label) +
+    '</td><td style="padding:4px 0' + (strong ? ';font-weight:600' : '') + '">' + value + '</td></tr>';
+}
+
+function renderDiag(d) {
+  if (!d.ok) {
+    let box = '<div class="notice warn" style="margin-top:12px"><b>[' + esc(d.stage) + '] ' + esc(d.message) + '</b>';
+    if (d.requestUrl) box += '<br><br><b>요청 주소</b><br><code style="word-break:break-all">' + esc(d.requestUrl) + '</code>';
+    if (d.rawSnippet) box += '<br><br><b>조달청 응답 원문</b><pre style="white-space:pre-wrap;word-break:break-all;background:#fff;padding:10px;border-radius:6px;max-height:260px;overflow:auto">' + esc(d.rawSnippet) + '</pre>';
+    box += '</div>';
+    $('#diagOut').innerHTML = box;
+    return;
+  }
+
+  if (d.mode === 'probe') { renderProbe(d); return; }
+
+  const c = d.closeDtStats, k = d.keywordResult, f = d.fieldCheck;
+  let verdict, vcls;
+  if (!d.itemsScanned) {
+    verdict = '해당 기간·업무구분에 공고가 한 건도 수신되지 않았습니다. 기간을 늘리거나 업무구분을 바꿔 다시 실행하세요.';
+    vcls = 'warn';
+  } else if (!f.hasCloseField) {
+    verdict = '응답에 bidClseDt(입찰마감일시) 필드가 없습니다. 조달청 응답 구조가 바뀐 것으로 코드 수정이 필요합니다. 아래 필드명 목록을 알려주세요.';
+    vcls = 'warn';
+  } else if (k.keyword && k.hitCount === 0) {
+    verdict = '조달청 원문에도 "' + esc(k.keyword) + '" 가 포함된 공고가 없습니다. 앱 문제가 아니라 해당 기간·업무구분에 데이터가 없는 것입니다.';
+    vcls = 'info';
+  } else if (k.keyword && k.hitAlive === 0) {
+    verdict = '"' + esc(k.keyword) + '" 공고 ' + k.hitCount + '건이 있으나 전부 이미 마감된 건입니다. 앱에서 제외된 것이 정상 동작입니다.';
+    vcls = 'info';
+  } else if (k.keyword) {
+    verdict = '"' + esc(k.keyword) + '" 마감 미도래 공고가 ' + k.hitAlive + '건 있습니다. 수집 결과에 이 건들이 없다면 품목 설정(제외 키워드 · 업무구분 체크)을 확인해야 합니다.';
+    vcls = 'warn';
+  } else {
+    verdict = '수신 정상. 키워드를 입력하면 매칭 여부까지 확인할 수 있습니다.';
+    vcls = 'info';
+  }
+
+  let html = '<div class="notice ' + vcls + '" style="margin-top:12px"><b>판정</b><br>' + verdict + '</div>';
+
+  html += '<table style="border-collapse:collapse;font-size:13px;margin-bottom:10px">';
+  html += kv('조회 조건', esc(d.query.typeLabel) + ' · ' + esc(d.query.from) + ' ~ ' + esc(d.query.to));
+  html += kv('사용 오퍼레이션', esc(d.query.modeLabel || '') + ' <code>' + esc(d.query.operation || '') + '</code>', true);
+  html += kv('응답 코드', esc(d.resultCode || '-') + ' ' + esc(d.resultMsg || ''), true);
+  html += kv('조달청 총 건수', Number(d.totalCount).toLocaleString() + '건');
+  html += kv('실제 검사한 건수', Number(d.itemsScanned).toLocaleString() + '건 (' + d.pagesFetched + '페이지)' +
+    (d.truncated ? ' <span style="color:#b42318">※ 일부만 검사됨</span>' : ''));
+  html += kv('마감일시 필드', f.hasCloseField ? '정상 (bidClseDt 존재)' : '<span style="color:#b42318">없음 — 구조 변경</span>', true);
+  html += kv('마감일시 해석', '성공 ' + c.parsed.toLocaleString() + '건 / 실패 ' + c.unparsed.toLocaleString() + '건');
+  html += kv('마감 미도래', '<b style="color:#166534">' + c.alive.toLocaleString() + '건</b> · 마감 경과 ' + c.expired.toLocaleString() + '건', true);
+  if (k.keyword) {
+    html += kv('키워드 "' + esc(k.keyword) + '"', '총 ' + k.hitCount + '건 중 <b>마감 미도래 ' + k.hitAlive + '건</b>', true);
+  }
+  html += '</table>';
+
+  if (k.hits && k.hits.length) {
+    html += '<div style="font-weight:600;font-size:13px;margin:12px 0 6px">키워드 매칭 공고 (최대 40건)</div>';
+    html += '<div style="overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:8px">' +
+      '<table class="data"><thead><tr><th>상태</th><th>공고명</th><th>수요기관</th><th>마감일시</th><th>세부품명</th></tr></thead><tbody>';
+    k.hits.forEach(function (h) {
+      const color = h.status.indexOf('미도래') !== -1 ? '#166534' : h.status.indexOf('경과') !== -1 ? '#6b7280' : '#b42318';
+      html += '<tr><td style="color:' + color + ';white-space:nowrap;font-size:12px">' + esc(h.status) + '</td>' +
+        '<td>' + esc(h.bidNtceNm) + '<br><span class="sub">' + esc(h.bidNtceNo) + '</span></td>' +
+        '<td>' + esc(h.dminsttNm) + '</td>' +
+        '<td style="white-space:nowrap">' + esc(h.bidClseDt) + '</td>' +
+        '<td>' + esc(h.dtilPrdctClsfcNoNm) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  if (c.unparsedSamples && c.unparsedSamples.length) {
+    html += '<div style="font-weight:600;font-size:13px;margin:12px 0 6px">마감일시 해석 실패 샘플</div>' +
+      '<pre style="white-space:pre-wrap;background:#fff;border:1px solid var(--line);padding:10px;border-radius:8px;font-size:12px">' +
+      esc(JSON.stringify(c.unparsedSamples, null, 2)) + '</pre>';
+  }
+
+  html += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;font-weight:600">응답 필드명 전체 (' +
+    f.fieldNames.length + '개) 및 첫 공고 원문 보기</summary>' +
+    '<pre style="white-space:pre-wrap;word-break:break-all;background:#fff;border:1px solid var(--line);padding:10px;border-radius:8px;font-size:12px;max-height:400px;overflow:auto">' +
+    esc(f.fieldNames.join(', ')) + '\n\n' + esc(JSON.stringify(d.firstItem, null, 2)) + '</pre></details>';
+
+  html += '<div class="hint" style="margin-top:10px">요청 주소: <code style="word-break:break-all">' + esc(d.requestUrl) + '</code></div>';
+
+  $('#diagOut').innerHTML = html;
+}
+
+function isCovered(op) {
+  return ['getBidPblancListInfoThng', 'getBidPblancListInfoThngPPSSrch',
+          'getBidPblancListInfoServc', 'getBidPblancListInfoServcPPSSrch',
+          'getBidPblancListInfoCnstwk', 'getBidPblancListInfoCnstwkPPSSrch',
+          'getBidPblancListInfoFrgcpt', 'getBidPblancListInfoFrgcptPPSSrch'].indexOf(op) !== -1;
+}
+
+function renderProbe(d) {
+  const ops = d.operations || [];
+  const okOps = ops.filter((o) => o.status === '정상');
+  const hitOps = okOps.filter((o) => (o.hitAlive || 0) > 0);
+  const missed = hitOps.filter((o) => !isCovered(o.op));
+
+  let verdict, vcls;
+  if (!okOps.length) {
+    verdict = '정상 응답한 오퍼레이션이 하나도 없습니다. 인증키 또는 활용신청 상태를 확인해야 합니다.';
+    vcls = 'warn';
+  } else if (!d.query.keyword) {
+    verdict = '키워드 없이 실행했습니다. 검색 키워드를 넣고 다시 실행하면 어느 오퍼레이션에 해당 공고가 있는지 표시됩니다.';
+    vcls = 'info';
+  } else if (!hitOps.length) {
+    verdict = '"' + esc(d.query.keyword) + '" 마감 미도래 공고가 어떤 오퍼레이션에도 없습니다. 기간을 늘려 다시 실행해 보시고, 그래도 없으면 해당 기간에 실제로 공고가 없는 것입니다.';
+    vcls = 'warn';
+  } else {
+    verdict = '"' + esc(d.query.keyword) + '" 마감 미도래 공고가 <b>' + hitOps.length + '개 오퍼레이션</b>에서 발견되었습니다. ' +
+      (missed.length
+        ? '이 중 <b>' + missed.length + '개</b>는 현재 수집 대상이 아닙니다 — 아래 표의 노란색 행이 지금 누락되고 있는 구분입니다.'
+        : '모두 현재 수집 대상에 포함되어 있습니다. 누락 원인은 품목 설정(제외 키워드 · 업무구분 체크)일 가능성이 높습니다.');
+    vcls = missed.length ? 'warn' : 'info';
+  }
+
+  let html = '<div class="notice ' + vcls + '" style="margin-top:12px"><b>판정</b><br>' + verdict + '</div>';
+  html += '<table style="border-collapse:collapse;font-size:13px;margin-bottom:10px">';
+  html += kv('조회 조건', esc(d.query.from) + ' ~ ' + esc(d.query.to) + ' · 키워드 "' + esc(d.query.keyword || '(없음)') + '"');
+  html += kv('오퍼레이션', '총 ' + d.summary.totalOps + '개 중 정상 ' + d.summary.workingOps + '개', true);
+  html += '</table>';
+
+  html += '<div style="overflow:auto;border:1px solid var(--line);border-radius:8px">' +
+    '<table class="data"><thead><tr><th>업무구분</th><th>경로</th><th>기준일</th><th>오퍼레이션</th><th>상태</th>' +
+    '<th>기간 총건수</th><th>키워드 일치</th><th>마감 미도래</th><th>수집 대상</th></tr></thead><tbody>';
+  ops.forEach((o) => {
+    const okc = o.status === '정상' ? '#166534' : o.status === '미제공/미승인' ? '#6b7280' : '#b42318';
+    const covered = isCovered(o.op);
+    const flag = (o.hitAlive || 0) > 0 && !covered;
+    html += '<tr' + (flag ? ' style="background:#fff8e6"' : '') + '>' +
+      '<td>' + esc(o.label) + (o.note ? '<br><span class="sub">' + esc(o.note) + '</span>' : '') + '</td>' +
+      '<td style="text-align:center">' + esc(o.baseLabel || (o.b === 1 ? '기본' : 'ad')) + '</td>' +
+      '<td style="text-align:center">' + esc(o.div || '1') + '</td>' +
+      '<td><code style="font-size:11.5px">' + esc(o.op) + '</code></td>' +
+      '<td style="color:' + okc + ';white-space:nowrap">' + esc(o.status) +
+      (o.detail ? '<br><span class="sub">' + esc(o.detail) + '</span>' : '') + '</td>' +
+      '<td class="num">' + (o.totalCount == null ? '-' : Number(o.totalCount).toLocaleString()) + '</td>' +
+      '<td class="num">' + (o.hit == null ? '-' : o.hit) + '</td>' +
+      '<td class="num"><b>' + (o.hitAlive == null ? '-' : o.hitAlive) + '</b></td>' +
+      '<td style="white-space:nowrap">' + (covered ? '예' : '<b style="color:#b42318">아니오</b>') + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  if (d.sample && d.sample.length) {
+    html += '<div style="font-weight:600;font-size:13px;margin:12px 0 6px">마감 미도래 공고 샘플 (최대 30건)</div>';
+    html += '<div style="overflow:auto;max-height:320px;border:1px solid var(--line);border-radius:8px">' +
+      '<table class="data"><thead><tr><th>업무구분</th><th>공고명</th><th>수요기관</th><th>공고기관</th><th>마감일시</th></tr></thead><tbody>';
+    d.sample.forEach((h) => {
+      html += '<tr><td style="white-space:nowrap;font-size:12px">' + esc(h.opLabel) + '</td>' +
+        '<td>' + esc(h.bidNtceNm) + '<br><span class="sub">' + esc(h.bidNtceNo) + '</span></td>' +
+        '<td>' + esc(h.dminsttNm) + '</td><td>' + esc(h.ntceInsttNm) + '</td>' +
+        '<td style="white-space:nowrap">' + esc(h.bidClseDt) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  $('#diagOut').innerHTML = html;
+}
+
+$('#runDiag').onclick = async () => {
+  const btn = $('#runDiag');
+  btn.disabled = true;
+  $('#diagStat').textContent = '조회 중… (최대 40초 소요)';
+  $('#diagOut').innerHTML = '';
+  const qs = '?kw=' + encodeURIComponent($('#dKw').value.trim()) +
+    '&type=' + $('#dType').value + '&days=' + $('#dDays').value + '&mode=' + $('#dMode').value;
+  try {
+    const res = await api('/api/diag' + qs);
+    if (res.status === 401) { location.reload(); return; }
+    renderDiag(await jsonOf(res));
+  } catch (e) {
+    $('#diagOut').innerHTML = '<div class="notice warn" style="margin-top:12px">진단 호출 실패: ' + esc(e.message) + '</div>';
+  } finally {
+    $('#diagStat').textContent = '';
+    btn.disabled = false;
+  }
+};
+
+$('#runKaptProbe').onclick = async () => {
+  const btn = $('#runKaptProbe');
+  btn.disabled = true;
+  $('#diagStat').textContent = 'K-apt 엔드포인트 탐지 중… (최대 55초)';
+  $('#diagOut').innerHTML = '';
+  try {
+    const res = await api('/api/status?kaptprobe=1');
+    if (res.status === 401) { location.reload(); return; }
+    renderKaptProbe((await jsonOf(res)).kaptProbe);
+  } catch (e) {
+    $('#diagOut').innerHTML = '<div class="notice warn" style="margin-top:12px">탐지 호출 실패: ' + esc(e.message) + '</div>';
+  } finally {
+    $('#diagStat').textContent = '';
+    btn.disabled = false;
+  }
+};
+
+const KIND_LABEL = {
+  'ok': '정상', 'ok-xml': '정상(XML)', 'param-error': '경로 정상·파라미터 불일치',
+  'key-not-applied': '미승인(활용신청 필요)', 'no-service': '해당 서비스 없음',
+  'empty': '빈 응답', 'unparsable': '해석 불가', 'other': '기타',
+};
+
+function renderKaptProbe(p) {
+  if (!p) {
+    $('#diagOut').innerHTML = '<div class="notice warn" style="margin-top:12px">탐지 결과가 없습니다. 인증키(G2B_SERVICE_KEY)가 설정되어 있는지 확인하세요.</div>';
+    return;
+  }
+  if (p.error) {
+    $('#diagOut').innerHTML = '<div class="notice warn" style="margin-top:12px">탐지 실패: ' + esc(p.error) + '</div>';
+    return;
+  }
+  let html = '<div style="margin-top:12px">';
+  const okFound = !!p.detected;
+  html += '<div class="notice ' + (okFound ? 'ok' : 'warn') + '">' +
+    '<b>탐지 결과</b><br>' +
+    '사용할 경로: <code>' + esc(p.willUse || '(없음)') + '</code><br>' +
+    '자동 탐지: <code>' + esc(p.detected || '(실패)') + '</code> · 상태 ' + esc(KIND_LABEL[p.bestKind] || p.bestKind || '-') + '<br>' +
+    '사용 인증키: <code>' + esc(p.keySource || '(미설정)') + '</code><br>' +
+    '환경변수 KAPT_ENDPOINT: <code>' + esc(p.envOverride || '(미설정)') + '</code><br>' +
+    '날짜 파라미터: <code>' + esc(p.dateShape || '(미확정)') + '</code>' +
+    (p.dateTotalCount != null ? ' · 기간 총건수 ' + Number(p.dateTotalCount).toLocaleString() + '건' : '') +
+    '</div>';
+
+  const table = (title, rows, cols) => {
+    if (!rows || !rows.length) return '';
+    let t = '<h4 style="margin:14px 0 6px">' + esc(title) + '</h4>' +
+      '<table class="data"><thead><tr>' + cols.map((c) => '<th>' + esc(c[0]) + '</th>').join('') + '</tr></thead><tbody>';
+    for (const r of rows) {
+      t += '<tr>' + cols.map((c) => '<td>' + esc(c[1](r)) + '</td>').join('') + '</tr>';
+    }
+    return t + '</tbody></table>';
+  };
+
+  html += table('서비스·오퍼레이션 후보', p.candidates, [
+    ['경로', (r) => r.path || '-'],
+    ['상태', (r) => KIND_LABEL[r.kind] || r.kind || '-'],
+    ['응답 요지', (r) => String(r.note || r.msg || '').slice(0, 120)],
+  ]);
+  html += table('날짜 파라미터 후보', p.dateCandidates, [
+    ['파라미터(시작/종료)', (r) => r.shape || '-'],
+    ['상태', (r) => KIND_LABEL[r.kind] || r.kind || '-'],
+    ['총건수', (r) => (r.totalCount != null ? Number(r.totalCount).toLocaleString() : '-')],
+    ['응답 요지', (r) => String(r.msg || '').slice(0, 100)],
+  ]);
+
+  if (!okFound) {
+    html += '<div class="notice warn" style="margin-top:12px">' +
+      '<b>정상 응답 후보가 없습니다.</b> 순서대로 확인하십시오.<br>' +
+      '① 공공데이터포털에서 <b>공동주택관리정보시스템(K-apt) 입찰공고</b> 데이터를 <b>활용신청</b> 했는지 (승인 상태여야 함)<br>' +
+      '② 활용신청 상세화면의 <b>참고문서(엔드포인트 URL)</b> 를 열어 실제 주소를 확인<br>' +
+      '③ 그 주소를 Vercel 환경변수 <code>KAPT_ENDPOINT</code> 에, 날짜 파라미터명을 ' +
+      '<code>KAPT_DATE_BEGIN</code> · <code>KAPT_DATE_END</code> 에 넣으면 <b>재배포 없이</b> 즉시 적용됩니다.' +
+      '</div>';
+  }
+  $('#diagOut').innerHTML = html + '</div>';
+}
+
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "g2b-bid-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "나라장터 품목별 유효 입찰공고 모니터",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}
